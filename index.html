@@ -145,7 +145,10 @@ footer{border-top:1px solid var(--bd);padding:30px 0;font-size:13px;color:var(--
 <div class="hud"><span>⏱ <span id="clock">0.0 s</span></span><span id="cnt"></span></div><div id="res"></div></div>
 </div></div>
 <div class="dbar"><i id="dbi"></i></div>
-<div style="text-align:center;margin-top:16px"><button class="btn b1" id="go" data-e="Start the demo">Démarrer la démo</button></div></div></div></section>
+<div style="text-align:center;margin-top:16px;display:flex;justify-content:center;gap:12px;align-items:center;flex-wrap:wrap">
+ <button class="btn b1" id="go" data-e="Start the demo">Démarrer la démo</button>
+ <button class="ib" id="vbtn" style="padding:10px 16px;font-size:14px;border-color:var(--gold);color:var(--gold)">🔊 <span id="vtxt" data-e="Voice AI: ON">Voix IA : ACTIVÉE</span></button>
+</div></div></div></section>
 
 <section id="videos"><div class="wrap"><div class="num">VIDEO</div><h2 data-e="Videos">Vidéos</h2><p class="sub" data-e="Click a preview to watch it right here, without leaving the site.">Cliquez sur un aperçu pour lire la vidéo directement ici, sans quitter le site.</p>
 <div class="vcar" id="vf"></div><div class="vcar" id="vm"></div></div></section>
@@ -192,7 +195,7 @@ footer{border-top:1px solid var(--bd);padding:30px 0;font-size:13px;color:var(--
 const $=s=>document.querySelector(s),sl=ms=>new Promise(r=>setTimeout(r,ms)),R=document.documentElement;
 const RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
 let lang='fr',running=false;try{lang=localStorage.getItem('cs-l')||'fr'}catch(e){}
-let th=(()=>{try{return localStorage.getItem('cs-t')}catch(e){}})()||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');
+let th=(()=>{try{return localStorage.getItem('cs-t')}catch(e){}})()||'dark';
 const T=(f,e)=>lang=='fr'?f:e;
 function av(f){const sk='#5a3825';return `<span class="avw shd"><svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#132036"/>${f?'':'<path d="M14 100q2-24 36-26t36 26z" fill="#0066FF"/>'}${f?'<path d="M18 100V70q0-18 32-20t32 20v30z" fill="#1a1a22" stroke="#FF9900"/>':''}<rect x="43" y="58" width="14" height="14" fill="${sk}"/><ellipse cx="50" cy="42" rx="17" ry="21" fill="${sk}"/>${f?'<path d="M26 52q-2-34 24-34t24 34q-4-26-24-26T26 52z" fill="#1a1a22" stroke="#FF9900"/><ellipse cx="50" cy="44" rx="14" ry="19" fill="#ece6d6"/><path d="M40 40q4-3 8 0M52 40q4-3 8 0" stroke="#111" stroke-width="2.5" fill="none"/><path d="M40 55q10 7 20 0M42 50q8-3 16 0M50 44v7" stroke="#FF3366" stroke-width="1.8" fill="none"/>':'<path d="M33 38q0-20 17-20t17 20q-4-10-17-10t-17 10z" fill="#0a0a0a"/><circle cx="44" cy="43" r="2" fill="#fff"/><circle cx="56" cy="43" r="2" fill="#fff"/><path d="M43 53q7 6 14 0" stroke="#2a150c" stroke-width="2" fill="none"/>'}</svg></span>`}
 const L=[["Niveau 1","Level 1","Étage officiel","Official floor","Activité normale des collaborateurs, protégée. Accès SSH officiel, contrôle TPM.","Normal employee activity, protected. Official SSH access, TPM check.","#dbe7fb","#0B0F19"],
@@ -219,12 +222,60 @@ const G=[["eBPF","Mini-programmes sûrs exécutés dans le noyau Linux pour obse
 ["Vaccin / Vaccine","Jeu de règles et de signatures de neutralisation généré après une attaque.","Set of neutralisation rules and signatures generated after an attack."]];
 function bars(id,rows){$(id).innerHTML=rows.map(r=>`<div class="bar"><span>${r[0]}</span><div><i style="--w:${r[1]}%;${r[2]?'background:'+r[2]:''}"></i></div><span>${r[3]}</span></div>`).join('')}
 
+/* ========== Synthèse Vocale IA Féminine pour la Démo ========== */
+let voiceEnabled = true;
+let synth = window.speechSynthesis;
+let currentUtterance = null;
+
+function stopVoice(){
+ if(synth){
+  synth.cancel();
+  currentUtterance = null;
+ }
+}
+
+function speakStep(text, targetLang){
+ if(!voiceEnabled || !synth) return;
+ stopVoice();
+ const utt = new SpeechSynthesisUtterance(text);
+ const langCode = targetLang === 'en' ? 'en-US' : 'fr-FR';
+ utt.lang = langCode;
+ utt.rate = 1.02;
+ utt.pitch = 1.1; // Voix féminine claire
+
+ const voices = synth.getVoices();
+ let selectedVoice = null;
+
+ if(voices.length > 0){
+  selectedVoice = voices.find(v => v.lang.replace('_','-').startsWith(targetLang) &&
+    (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('woman') ||
+     v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('hortense') ||
+     v.name.toLowerCase().includes('denise') || v.name.toLowerCase().includes('celeste') ||
+     v.name.toLowerCase().includes('amélie') || v.name.toLowerCase().includes('virginie') ||
+     v.name.toLowerCase().includes('samantha') || v.name.toLowerCase().includes('victoria') ||
+     v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural')));
+
+  if(!selectedVoice){
+   selectedVoice = voices.find(v => v.lang.replace('_','-').startsWith(targetLang));
+  }
+ }
+
+ if(selectedVoice) utt.voice = selectedVoice;
+ currentUtterance = utt;
+ synth.speak(utt);
+}
+
+if(synth && synth.onvoiceschanged !== undefined){
+ synth.onvoiceschanged = () => {};
+}
+
 /* ========== Simulation de la démo (corrigée) ========== */
 const stN=()=>[T('Passerelle eBPF','eBPF gateway'),'N2 '+T('Quarantaine','Quarantine'),'N3 STIX 2.1','N4 Qdrant','N5 AST·Bandit','VPS LAB·ZKP',T('Réseau vacciné','Network vaccinated')];
 const sg=(i,s)=>{const e=document.querySelectorAll('.stg')[i];if(e)e.className='stg '+s},
 add=(id,t,c)=>{const e=document.createElement('div');e.textContent=t;if(c)e.style.color=c;const b=$(id);b.appendChild(e);b.scrollTop=b.scrollHeight};
 function labelStages(){const n=stN();document.querySelectorAll('.stg').forEach((s,i)=>s.textContent=n[i])}
 function resetSim(){
+ stopVoice();
  ['p1','p2'].forEach(i=>{const p=$('#'+i);p.style.transition='none';p.style.width='0';void p.offsetWidth;p.style.transition=''});
  ['d1','d2'].forEach(i=>$('#'+i).classList.remove('on'));
  $('#stg').innerHTML=stN().map(s=>`<span class="stg">${s}</span>`).join('');
@@ -270,17 +321,32 @@ $('#gl').innerHTML=G.map(g=>`<div class="glass"><b>${g[0]}</b><span>${T(g[1],g[2
 if(!running){resetSim();if(finalT!==null)showFinal()}else labelStages();
 scan()}
 function setLang(){R.lang=lang;document.title='CYBERSOCLE — '+T("L'immunité collective par la tour de sécurité à 5 niveaux","Collective immunity through the 5-level security tower");
-document.querySelectorAll('[data-e]').forEach(e=>{if(!e.dataset.f)e.dataset.f=e.innerHTML;e.innerHTML=lang=='fr'?e.dataset.f:e.dataset.e});$('#lg').textContent=lang=='fr'?'EN':'FR';render()}
+document.querySelectorAll('[data-e]').forEach(e=>{if(!e.dataset.f)e.dataset.f=e.innerHTML;e.innerHTML=lang=='fr'?e.dataset.f:e.dataset.e});$('#lg').textContent=lang=='fr'?'EN':'FR';
+const vtx=$('#vtxt');if(vtx)vtx.textContent=voiceEnabled?T('Voix IA : ACTIVÉE','Voice AI: ON'):T('Voix IA : DÉSACTIVÉE','Voice AI: OFF');
+render()}
 function setTh(){R.dataset.theme=th;$('#th').textContent=th=='dark'?'☀️':'🌙'}
 $('#lg').onclick=()=>{lang=lang=='fr'?'en':'fr';try{localStorage.setItem('cs-l',lang)}catch(e){}setLang()};
 $('#th').onclick=()=>{th=th=='dark'?'light':'dark';try{localStorage.setItem('cs-t',th)}catch(e){}setTh()};
+
+const vbtn = $('#vbtn');
+if(vbtn){
+ vbtn.onclick = () => {
+  voiceEnabled = !voiceEnabled;
+  if(!voiceEnabled) stopVoice();
+  $('#vtxt').textContent = voiceEnabled ? T('Voix IA : ACTIVÉE','Voice AI: ON') : T('Voix IA : DÉSACTIVÉE','Voice AI: OFF');
+ };
+}
 
 /* ========== Démo : 3 slides automatiques, 45 s au total (15 s chacune) ========== */
 let slI=0,demoOn=false,finalT=null,rpTok=0,tms=[],demoT0=0;
 function showFinal(){document.querySelectorAll('.nodes i').forEach(i=>i.className='v');document.querySelectorAll('.stg').forEach(i=>i.className='stg ok');
  ['p1','p2'].forEach(i=>$('#'+i).style.width='100%');['d1','d2'].forEach(i=>$('#'+i).classList.add('on'));
  $('#cnt').textContent=T('Serveurs vaccinés : 48 / 48','Servers vaccinated: 48 / 48');$('#clock').textContent='45 s';
- $('#res').textContent=T('🛡 Réseau immunisé avec succès en 45 secondes !','🛡 Network successfully immunised in 45 seconds!')}
+ $('#res').textContent=T('🛡 Réseau immunisé avec succès en 45 secondes !','🛡 Network successfully immunised in 45 seconds!');
+ speakStep(T("Attaque neutralisée. Le vaccin a été validé et distribué. L'ensemble des 48 serveurs du réseau est désormais totalement immunisé.",
+             "Attack neutralised. The vaccine was validated and distributed. All 48 servers in the network are now fully immunised."), lang);
+}
+
 async function runS3(){
  const tok=++rpTok,alive=()=>tok===rpTok,st=[...document.querySelectorAll('.stg')],n=[...document.querySelectorAll('.nodes i')];
  finalT=null;st.forEach(x=>x.className='stg');n.forEach(x=>x.className='');
@@ -288,6 +354,10 @@ async function runS3(){
  ['d1','d2'].forEach(i=>$('#'+i).classList.remove('on'));$('#res').textContent='';
  $('#cnt').textContent=T('Serveurs vaccinés : 0 / 48','Servers vaccinated: 0 / 48');
  const tk=setInterval(()=>{if(!alive()){clearInterval(tk);return}$('#clock').textContent=Math.min(45,(performance.now()-demoT0)/1000).toFixed(1)+' s'},100);
+
+ speakStep(T("Troisième étape : Traitement par la tour de sécurité. Génération de la fiche STIX 2.1, synthèse du vaccin par Qdrant, qualification formelle AST et Bandit, puis publication de la preuve ZKP par le VPS LAB pour vacciner les 48 serveurs.",
+             "Step three: Processing by the security tower. STIX 2.1 threat card generation, vaccine synthesis via Qdrant, AST and Bandit formal qualification, then ZKP proof distribution by VPS LAB to vaccinate all 48 servers."), lang);
+
  /* 0 : Passerelle eBPF s'allume dès l'arrivée */
  sg(0,'on');$('#p1').style.width='100%';$('#p2').style.width='100%';
  await sl(1000);if(!alive())return;$('#d1').classList.add('on');await sl(600);if(!alive())return;$('#d2').classList.add('on');await sl(400);
@@ -295,8 +365,22 @@ async function runS3(){
  if(!alive())return;sg(5,'ok');sg(6,'on');
  for(let k=0;k<48;k++){if(!alive())return;n[k].className='v';if(k%4==3)$('#cnt').textContent=T('Serveurs vaccinés : ','Servers vaccinated: ')+(k+1)+' / 48';await sl(50)}
  if(!alive())return;clearInterval(tk);finalT=45;showFinal()}
-function showSlide(i){slI=i;$('#dtrack').style.transform=`translateX(-${i*100}%)`;if(i==2)runS3();else rpTok++}
+
+function showSlide(i){
+ slI=i;
+ $('#dtrack').style.transform=`translateX(-${i*100}%)`;
+ if(i===0){
+  speakStep(T("Première étape : Deux utilisateurs se connectent en SSH avec les mêmes identifiants. Mike, l'employé légitime, et un intrus ayant usurpé ses accès.",
+              "Step one: Two users connect via SSH with identical credentials. Mike, the legitimate employee, and an intruder using stolen credentials."), lang);
+ } else if(i===1){
+  speakStep(T("Deuxième étape : Analyse comportementale en direct dans les terminaux. Mike est validé sur le Niveau 1. L'intrus est immédiatement isolé par Falco et basculé silencieusement sur le leurre du Niveau 2.",
+              "Step two: Live behavioural analysis in the terminals. Mike is validated on Level 1. The intruder is instantly isolated by Falco and silently redirected to the Level 2 decoy."), lang);
+ }
+ if(i==2)runS3();else rpTok++;
+}
+
 function startDemo(){
+ stopVoice();
  tms.forEach(clearTimeout);tms=[];demoOn=true;rpTok++;demoT0=performance.now();
  const go=$('#go'),bar=$('#dbi');go.disabled=true;
  if(!running){finalT=null;resetSim()}
@@ -312,7 +396,7 @@ showSlide(0);
 /* ========== Carrousels vidéo : lecture intégrée (sans redirection) ========== */
 const vstop=()=>document.querySelectorAll('.vt.pl2').forEach(v=>{v.classList.remove('pl2');v.innerHTML=v._h});
 function vplay(v){vstop();v._h=v.innerHTML;v.classList.add('pl2');
- v.innerHTML=`<iframe src="https://www.youtube.com/embed/${v.dataset.id}?autoplay=1&rel=0&playsinline=1${location.protocol.startsWith('http')?'&origin='+encodeURIComponent(location.origin):''}" title="CYBERSOCLE vidéo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`}
+ v.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${v.dataset.id}?autoplay=1&rel=0&playsinline=1" title="CYBERSOCLE vidéo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`}
 function vcar(host,ids,title){
  host.innerHTML=`<h3 class="vh" data-e="${title[1]}">${title[0]}</h3><div class="vtrack">`+ids.map((id,k)=>`<div class="vs"><div class="vt" data-id="${id}" role="button" tabindex="0" aria-label="Lire la vidéo ${k+1}"><img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="Aperçu vidéo ${k+1}" loading="lazy"><span class="pb"></span><span class="vn">${k+1} / ${ids.length}</span></div><a class="vl" href="https://youtu.be/${id}" target="_blank" rel="noopener">${T('Lecture impossible ? Ouvrir sur YouTube','Can\'t play? Open on YouTube')}</a></div>`).join('')+'</div>'
  +(ids.length>1?`<button class="ib va l" aria-label="Précédent">◀</button><button class="ib va r" aria-label="Suivant">▶</button><div class="dctl"><div class="dots">${ids.map(()=>'<button></button>').join('')}</div></div>`:'');
