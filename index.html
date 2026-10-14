@@ -100,7 +100,9 @@ footer{border-top:1px solid var(--bd);padding:30px 0;font-size:13px;color:var(--
 .vtrack{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;gap:16px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.vtrack::-webkit-scrollbar{display:none}
 .vs{flex:0 0 100%;scroll-snap-align:center;min-width:0}
 .vt{position:relative;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#000;border:1px solid var(--bd);cursor:pointer;box-shadow:0 10px 36px rgba(0,0,0,.35)}
-.vt img,.vt iframe{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;display:block}
+.vt img,.vt iframe,.vt video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;display:block}
+.v-expand-btn{position:absolute;right:12px;top:12px;z-index:10;background:rgba(11,15,25,.85);color:var(--cyan);border:1px solid var(--bd);padding:6px 12px;border-radius:8px;font:600 12px Inter;cursor:pointer;backdrop-filter:blur(6px);transition:background .2s,border-color .2s}.v-expand-btn:hover{background:var(--blue);color:#fff;border-color:var(--cyan)}
+.vt.vt-enlarged{position:fixed;inset:10px;z-index:9999;width:calc(100vw - 20px);height:calc(100vh - 20px);aspect-ratio:unset;border-radius:16px;box-shadow:0 0 50px rgba(0,0,0,.9)}
 .vt .pb{position:absolute;left:50%;top:50%;width:76px;height:54px;margin:-27px 0 0 -38px;border-radius:14px;background:rgba(255,0,0,.9);display:grid;place-items:center;transition:transform .2s}.vt:hover .pb{transform:scale(1.1)}
 .vt .pb:after{content:"";border-left:20px solid #fff;border-top:12px solid transparent;border-bottom:12px solid transparent;margin-left:5px}
 .vt .vn{position:absolute;left:12px;bottom:10px;font:600 12px Inter;background:rgba(0,0,0,.65);color:#fff;padding:3px 10px;border-radius:999px}
@@ -436,19 +438,84 @@ showSlide(0);
 
 /* ========== Carrousels vidéo : lecture intégrée (sans redirection) ========== */
 const vstop=()=>document.querySelectorAll('.vt.pl2').forEach(v=>{v.classList.remove('pl2');v.innerHTML=v._h});
-function vplay(v){vstop();v._h=v.innerHTML;v.classList.add('pl2');
- v.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${v.dataset.id}?autoplay=1&rel=0&playsinline=1" title="CYBERSOCLE vidéo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`}
-function vcar(host,ids,title){
- host.innerHTML=`<h3 class="vh" data-e="${title[1]}">${title[0]}</h3><div class="vtrack">`+ids.map((id,k)=>`<div class="vs"><div class="vt" data-id="${id}" role="button" tabindex="0" aria-label="Lire la vidéo ${k+1}"><img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="Aperçu vidéo ${k+1}" loading="lazy"><span class="pb"></span><span class="vn">${k+1} / ${ids.length}</span></div><a class="vl" href="https://youtu.be/${id}" target="_blank" rel="noopener">${T('Lecture impossible ? Ouvrir sur YouTube','Can\'t play? Open on YouTube')}</a></div>`).join('')+'</div>'
- +(ids.length>1?`<button class="ib va l" aria-label="Précédent">◀</button><button class="ib va r" aria-label="Suivant">▶</button><div class="dctl"><div class="dots">${ids.map(()=>'<button></button>').join('')}</div></div>`:'');
+function vplay(v, item){
+ vstop();
+ v._h=v.innerHTML;
+ v.classList.add('pl2');
+ if(typeof item==='object' && item.type==='local'){
+  v.innerHTML=`<video src="${item.src}" controls autoplay playsinline style="width:100%;height:100%;object-fit:contain;background:#000;"></video>
+  <button class="v-expand-btn" aria-label="${T('Agrandir la vidéo','Enlarge video')}" title="${T('Agrandir la vidéo','Enlarge video')}">⛶ ${T('Agrandir','Enlarge')}</button>`;
+  const btn = v.querySelector('.v-expand-btn');
+  if(btn){
+   btn.onclick=(e)=>{
+    e.stopPropagation();
+    toggleEnlargeVideo(v);
+   };
+  }
+ } else {
+  const id = typeof item==='string' ? item : item.id;
+  v.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1" title="CYBERSOCLE vidéo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  <button class="v-expand-btn" aria-label="${T('Agrandir la vidéo','Enlarge video')}" title="${T('Agrandir la vidéo','Enlarge video')}">⛶ ${T('Agrandir','Enlarge')}</button>`;
+  const btn = v.querySelector('.v-expand-btn');
+  if(btn){
+   btn.onclick=(e)=>{
+    e.stopPropagation();
+    toggleEnlargeVideo(v);
+   };
+  }
+ }
+}
+
+function toggleEnlargeVideo(vtEl){
+ if(!vtEl) return;
+ if(vtEl.classList.contains('vt-enlarged')){
+  vtEl.classList.remove('vt-enlarged');
+  document.body.style.overflow = '';
+  if(document.fullscreenElement) {
+   document.exitFullscreen().catch(()=>{});
+  }
+ } else {
+  vtEl.classList.add('vt-enlarged');
+  document.body.style.overflow = 'hidden';
+  if(vtEl.requestFullscreen){
+   vtEl.requestFullscreen().catch(()=>{});
+  }
+ }
+}
+
+document.addEventListener('keydown', (e)=>{
+ if(e.key === 'Escape'){
+  const enlarged = document.querySelector('.vt-enlarged');
+  if(enlarged){
+   enlarged.classList.remove('vt-enlarged');
+   document.body.style.overflow = '';
+  }
+ }
+});
+
+function vcar(host,items,title){
+ host.innerHTML=`<h3 class="vh" data-e="${title[1]}">${title[0]}</h3><div class="vtrack">`+items.map((item,k)=>{
+  const isLocal = typeof item === 'object' && item.type === 'local';
+  const label = isLocal ? (lang==='fr'?item.title:item.titleEn) : `Vidéo ${k+1}`;
+  const posterHtml = isLocal ? `<video src="${item.src}#t=0.5" preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="https://i.ytimg.com/vi/${item}/hqdefault.jpg" alt="Aperçu vidéo ${k+1}" loading="lazy">`;
+  const linkHtml = isLocal ? `<a class="vl" href="${item.src}" target="_blank" download>${T('Télécharger / Ouvrir la vidéo MP4','Download / Open MP4 video')}</a>` : `<a class="vl" href="https://youtu.be/${item}" target="_blank" rel="noopener">${T('Lecture impossible ? Ouvrir sur YouTube','Can\'t play? Open on YouTube')}</a>`;
+  return `<div class="vs"><div class="vt" role="button" tabindex="0" aria-label="${label}">${posterHtml}<span class="pb"></span><span class="vn">${k+1} / ${items.length} ${isLocal?'(MP4)':''}</span></div>${linkHtml}</div>`;
+ }).join('')+'</div>'
+ +(items.length>1?`<button class="ib va l" aria-label="Précédent">◀</button><button class="ib va r" aria-label="Suivant">▶</button><div class="dctl"><div class="dots">${items.map(()=>'<button></button>').join('')}</div></div>`:'');
  const tr=host.querySelector('.vtrack'),dots=[...host.querySelectorAll('.dots button')];
- host.querySelectorAll('.vt').forEach(v=>{v.onclick=e=>{if(!v.classList.contains('pl2'))vplay(v)};v.onkeydown=e=>{if((e.key=='Enter'||e.key==' ')&&!v.classList.contains('pl2')){e.preventDefault();vplay(v)}}});
+ host.querySelectorAll('.vt').forEach((v, idx)=>{
+  const item = items[idx];
+  v.onclick=e=>{if(!v.classList.contains('pl2'))vplay(v, item)};
+  v.onkeydown=e=>{if((e.key=='Enter'||e.key==' ')&&!v.classList.contains('pl2')){e.preventDefault();vplay(v, item)}}
+ });
  const go=d=>{vstop();tr.scrollBy({left:d*tr.clientWidth,behavior:'smooth'})};
  const l=host.querySelector('.va.l'),r=host.querySelector('.va.r');if(l){l.onclick=()=>go(-1);r.onclick=()=>go(1)}
  dots.forEach((d,k)=>d.onclick=()=>{vstop();tr.scrollTo({left:k*tr.clientWidth,behavior:'smooth'})});
- let t;tr.addEventListener('scroll',()=>{const k=Math.round(tr.scrollLeft/tr.clientWidth);dots.forEach((d,i)=>d.classList.toggle('on',i==k));clearTimeout(t);t=setTimeout(()=>{host.querySelectorAll('.vt.pl2').forEach(v=>{if(Math.round(tr.scrollLeft/tr.clientWidth)!=[...host.querySelectorAll('.vt')].indexOf(v)){v.classList.remove('pl2');v.innerHTML=v._h}})},200)},{passive:true});
- if(dots[0])dots[0].classList.add('on')}
-vcar($('#vf'),['KLmeIARgsWg'],['★ À la une','★ Featured']);
+ let t;tr.addEventListener('scroll',()=>{const k=Math.round(tr.scrollLeft/tr.clientWidth);dots.forEach((d,i)=>d.classList.toggle('on',i==k));clearTimeout(t);t=setTimeout(()=>{host.querySelectorAll('.vt.pl2').forEach((v, idx)=>{if(Math.round(tr.scrollLeft/tr.clientWidth)!==idx){v.classList.remove('pl2');v.innerHTML=v._h}})},200)},{passive:true});
+ if(dots[0])dots[0].classList.add('on')
+}
+
+vcar($('#vf'),[{type:'local',src:'video/presentation.mp4',title:'Présentation CYBERSOCLE (MP4)',titleEn:'CYBERSOCLE Presentation (MP4)'},'KLmeIARgsWg'],['★ À la une','★ Featured']);
 vcar($('#vm'),['bz9ucIXmApw','rVK04X1rxB8','2mynnAQofqc','PMu3QOtsLBU','c_tCvCJ2JiE'],['Galerie vidéos','Video gallery']);
 
 /* ========== Direction de défilement ========== */
